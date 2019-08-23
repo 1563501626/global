@@ -3,7 +3,7 @@ import tensorflow as tf
 
 # 验证码数据训练
 
-TFRECORDS_DIR = r'./captcha.tfrecords'
+TFRECORDS_DIR = r'./train.tfrecords'
 BATCH_SIZE = 50
 
 
@@ -32,8 +32,8 @@ def read_data():
     label = tf.decode_raw(feature["label"], tf.uint8)
 
     # 批处理 x [?, 32, 90, 3] y [?, 3]
-    x = tf.reshape(image, [20, 80, 3])
-    y_true = tf.reshape(label, [4])
+    x = tf.reshape(image, [32, 90, 1])
+    y_true = tf.reshape(label, [3])
 
     image_batch, label_batch = tf.train.batch([x, y_true], batch_size=BATCH_SIZE, num_threads=1, capacity=BATCH_SIZE)
     # print(image_batch, label_batch)
@@ -41,25 +41,25 @@ def read_data():
     return image_batch, label_batch
 
 
-def fc_shenjing(image_batch, label_batch):
+def fc_shenjing(image_batch,label_batch):
     """
     训练 API
     image_batch: [50, 32, 90, 3],label_batch: [50, 3]
     """
     # label --> one_hot
-    y_true = tf.one_hot(label_batch, depth=26, axis=2, on_value=1.0)
+    y_true = tf.one_hot(label_batch, depth=100 + 4, axis=2, on_value=1.0)
 
     # x: [50, 32*90*3] y_true: [50, 3] w: [32*90*3, 100+4+100] b: [100+4+100]
-    x = tf.reshape(image_batch, [-1, 20 * 80 * 3])
-    w = tf.Variable(tf.random_normal([20 * 80 * 3, 4 * 26]))
-    b = tf.constant(0.0, shape=[4 * 26])
+    x = tf.reshape(image_batch, [-1, 32*90*1])
+    w = tf.Variable(tf.random_normal([32*90*1, 104*3]))
+    b = tf.constant(0.0, shape=[104*3])
 
     # 矩阵计算
     y_predict = tf.matmul(tf.cast(x, tf.float32), w) + b
 
     # softmax、交叉熵损失
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-        labels=tf.reshape(y_true, [BATCH_SIZE, 4*26]),
+        labels=tf.reshape(y_true, [BATCH_SIZE, 3*104]),
         logits=y_predict
     ))
 
@@ -68,13 +68,13 @@ def fc_shenjing(image_batch, label_batch):
 
     # 计算准确率
     # 要将y_predict[50, 3*104] --> [50, 3, 104]
-    equal_list = tf.equal(tf.argmax(y_true, axis=2), tf.argmax(tf.reshape(y_predict, [BATCH_SIZE, 4, 26]), axis=2))
+    equal_list = tf.equal(tf.argmax(y_true, axis=2), tf.argmax(tf.reshape(y_predict, [BATCH_SIZE, 3, 104]), axis=2))
     accuracy = tf.reduce_mean(tf.cast(equal_list, tf.float32))
 
     # 初始化变量
     var_init = tf.global_variables_initializer()
 
-    return y_predict, var_init, train_op, accuracy
+    return y_predict, var_init, train_op, accuracy, loss
 
 
 def main():
@@ -85,7 +85,7 @@ def main():
     image_batch, label_batch = read_data()
 
     # 全连接层神经网络
-    y_predict, var_init, train_op, accuracy = fc_shenjing(image_batch, label_batch)
+    y_predict, var_init, train_op, accuracy, loss = fc_shenjing(image_batch, label_batch)
 
     with tf.Session() as sess:
         sess.run(var_init)
@@ -101,6 +101,7 @@ def main():
             sess.run(train_op)
 
             print("第%d批次的准确率为：%f" % (i, accuracy.eval()))
+            print(loss.eval())
 
         # 回收线程
         coord.request_stop()

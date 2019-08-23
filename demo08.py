@@ -72,7 +72,7 @@ def model():
 
     # 优化调参  梯度下降
     with tf.variable_scope("optimizer"):
-        train_op = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss)
+        train_op = tf.train.GradientDescentOptimizer(learning_rate=0.0025).minimize(loss)
 
     # 计算准确率
     with tf.variable_scope("accuracy"):
@@ -82,15 +82,15 @@ def model():
     # 初始化变量op
     var_init = tf.global_variables_initializer()
 
-    return train_op, var_init, x, y_true, accuracy
+    return train_op, var_init, x, y_true, accuracy, loss
 
 
 def conv_fc():
     # 获取数据集
-    mnist = input_data.read_data_sets(r'D:\workeplace\datas\mnist', one_hot=True)
+    mnist = input_data.read_data_sets(r'D:\crawl_datasource\yzm\data', one_hot=True)
 
     # 获取训练op
-    train_op, var_init, x, y_true, accuracy = model()
+    train_op, var_init, x, y_true, accuracy, loss = model()
 
     # 开始训练
     with tf.Session() as sess:
@@ -98,11 +98,12 @@ def conv_fc():
         sess.run(var_init)
 
         # 迭代训练
-        for i in range(2000):
+        for i in range(1000):
             # 批处理
             x_mnist, y_mnist = mnist.train.next_batch(50)
             sess.run(train_op, feed_dict={x: x_mnist, y_true: y_mnist})
             print("第%d次训练，准确率为：%f" % (i, sess.run(accuracy, feed_dict={x: x_mnist, y_true: y_mnist})))
+            print(sess.run(loss, feed_dict={x: x_mnist, y_true: y_mnist}))
 
 
 if __name__ == '__main__':

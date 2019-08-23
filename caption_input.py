@@ -4,9 +4,9 @@ import os, re
 
 # 数据输入
 
-IMAGE_PATH = r'D:\workeplace\datas\train_data\caption\image'
-LABEL_PATH = r'D:\workeplace\datas\train_data\caption\text'
-TFRECORDS_SAVE_PATH = r'D:\workeplace\dataAnalysis\models\tfrecords\\'
+IMAGE_PATH = r'D:\crawl_datasource\yzm\image'
+LABEL_PATH = r'D:\crawl_datasource\yzm\text'
+TFRECORDS_SAVE_PATH = r'./'
 
 
 def image():
@@ -36,10 +36,11 @@ def image():
     image = tf.image.decode_jpeg(value)
 
     # 32 * 90 * 3
-    image.set_shape([32, 90, 3])
+    image.set_shape([32, 90, 1])
 
     # 批处理  capacity 队列最多可存储的样例数 [500, 32, 90, 3]
     image_batch = tf.train.batch([image], batch_size=500, capacity=500, num_threads=1)
+    image_batch.key = key
 
     return image_batch
 
@@ -59,12 +60,12 @@ def label():
     key, value = reader.read(file_queue)
 
     # 解码 records=[['None']] 读取出来是字符串形式
-    file = tf.decode_csv(value, record_defaults=['None'])
+    file = tf.decode_csv(value, record_defaults=[['None']])
 
     # 批处理 [500, 1]
     file_batch = tf.train.batch([file], batch_size=500, capacity=500, num_threads=1)
 
-    return file_batch
+    return file_batch, value
 
 
 def deal_label(labels):
@@ -101,7 +102,7 @@ def deal_label(labels):
         third = num.group(3)
         label_letter.append([letter[first], letter[second], letter[third]])
 
-    print(label_letter)
+    # print(label_letter)
 
     # 将列表转换为tensor
     label_letter = tf.constant(label_letter)
@@ -116,13 +117,12 @@ def write_to_tfrecords(image_batch, label_batch):
     """
     # 转换类型
     label_batch = tf.cast(label_batch, tf.uint8)
-    print(label_batch)
 
     # 构造TFRecords存储器 path tfrecords文件存储地址
     writer = tf.python_io.TFRecordWriter(path=TFRECORDS_SAVE_PATH + 'train.tfrecords')
 
     # 循环将每一张图片序列化后写入
-    for i in range(1, 501):
+    for i in range(500):
         # 取出第i张图片， 将其特征值转换为string
         image_str = image_batch[i].eval().tostring()
 
@@ -130,10 +130,13 @@ def write_to_tfrecords(image_batch, label_batch):
         label_str = label_batch[i].eval().tostring()
 
         # 构造协议块
-        example = tf.train.Example(features=tf.train.Feature(feature={
+        example = tf.train.Example(features=tf.train.Features(feature={
             "image": tf.train.Feature(bytes_list=tf.train.BytesList(value=[image_str])),
             "label": tf.train.Feature(bytes_list=tf.train.BytesList(value=[label_str]))
         }))
+        print(i, '\t', image_str)
+        print(i, '\t', label_str)
+        print('------------------------------')
         writer.write(example.SerializeToString())
         writer.close()
 
@@ -145,7 +148,7 @@ def caption():
     image_batch = image()
 
     # 获取验证码中的标签数据（y_true）
-    label_batch = label()
+    label_batch, file = label()
 
     with tf.Session() as sess:
         coord = tf.train.Coordinator()
@@ -153,16 +156,14 @@ def caption():
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         label_banary = sess.run(label_batch)
-
-        label_batch = deal_label(label_banary)
+        label_letter = deal_label(label_banary)
 
         # 数值化后
-        label_batchs = sess.run(label_batch)
-
-        print(label_batchs)
+        letter_num = sess.run(label_letter)
+        # print(label_batchs)
 
         # 将图片数据和标签值写入tfrecords文件中
-        write_to_tfrecords(image_batch, label_batchs)
+        write_to_tfrecords(image_batch, letter_num)
 
         coord.request_stop()
         coord.join(threads)
