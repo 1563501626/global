@@ -5,7 +5,7 @@ import os, re
 # 数据输入
 
 IMAGE_PATH = r'D:\crawl_datasource\yzm\image'
-LABEL_PATH = r'D:\crawl_datasource\yzm\text'
+LABEL_PATH = r'./text02.csv'
 TFRECORDS_SAVE_PATH = r'./'
 
 
@@ -36,7 +36,7 @@ def image():
     image = tf.image.decode_jpeg(value)
 
     # 32 * 90 * 3
-    image.set_shape([32, 90, 1])
+    image.set_shape([32, 90, 3])
 
     # 批处理  capacity 队列最多可存储的样例数 [500, 32, 90, 3]
     image_batch = tf.train.batch([image], batch_size=500, capacity=500, num_threads=1)
@@ -60,12 +60,12 @@ def label():
     key, value = reader.read(file_queue)
 
     # 解码 records=[['None']] 读取出来是字符串形式
-    file = tf.decode_csv(value, record_defaults=[['None']])
+    number, labels = tf.decode_csv(value, record_defaults=[[1], ['None']])
 
     # 批处理 [500, 1]
-    file_batch = tf.train.batch([file], batch_size=500, capacity=500, num_threads=1)
+    file_batch = tf.train.batch([labels], batch_size=500, capacity=500, num_threads=1)
 
-    return file_batch, value
+    return file_batch
 
 
 def deal_label(labels):
@@ -73,34 +73,32 @@ def deal_label(labels):
     标签值数值化 1 ÷ 1
     :return:
     """
-    # LETTER = "0123456789+-×÷"
-    #
-    # # {...0: '+', 1: '-', 2: '×', 3: '÷'}
-    # letter = dict(enumerate(LETTER))
-    # # {...'+': 0, '-': 1, '×': 2, '÷': 3}
-    # letter = dict(zip(letter.values(), letter.keys()))
+    LETTER = "0123456789+-×÷"
 
-    temp = []
-    for i in range(100):
-        temp.append(str(i))
-    for i in "+-×÷":
-        temp.append(i)
     # {...0: '+', 1: '-', 2: '×', 3: '÷'}
-    letter = dict(enumerate(temp))
+    letter = dict(enumerate(list(LETTER)))
     # {...'+': 0, '-': 1, '×': 2, '÷': 3}
     letter = dict(zip(letter.values(), letter.keys()))
+
+    # temp = []
+    # for i in range(10):
+    #     temp.append(str(i))
+    # for i in "+-×÷":
+    #     temp.append(i)
+    # # {...0: '+', 1: '-', 2: '×', 3: '÷'}
+    # letter = dict(enumerate(temp))
+    # # {...'+': 0, '-': 1, '×': 2, '÷': 3}
+    # letter = dict(zip(letter.values(), letter.keys()))
 
     # 储存值化后的标签 [[1,3,6], [2,5,2]...]
     label_letter = []
 
     # 数值化
     for i in labels:
-        string_i = i[0].decode()
-        num = re.search(r'(\d+)([\+\-×÷]+)(\d+)', string_i)
-        first = num.group(1)
-        second = num.group(2)
-        third = num.group(3)
-        label_letter.append([letter[first], letter[second], letter[third]])
+        letter_list = []
+        for j in i.decode():
+            letter_list.append(letter[j])
+        label_letter.append(letter_list)
 
     # print(label_letter)
 
@@ -148,7 +146,7 @@ def caption():
     image_batch = image()
 
     # 获取验证码中的标签数据（y_true）
-    label_batch, file = label()
+    label_batch = label()
 
     with tf.Session() as sess:
         coord = tf.train.Coordinator()
