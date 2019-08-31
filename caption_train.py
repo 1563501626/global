@@ -67,7 +67,7 @@ def fc_shenjing(image_batch, label_batch):
     ))
 
     # 梯度下降
-    train_op = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss)
+    train_op = tf.train.GradientDescentOptimizer(learning_rate=0.000001).minimize(loss)
 
     # 计算准确率
     # 要将y_predict[50, 3*104] --> [50, 3, 104]

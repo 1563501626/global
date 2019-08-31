@@ -4,8 +4,8 @@ import os, re
 
 # 数据输入
 
-IMAGE_PATH = r'D:\crawl_datasource\yzm\image'
-LABEL_PATH = r'./text02.csv'
+IMAGE_PATH = r'./files'
+LABEL_PATH = r'./text03.txt'
 TFRECORDS_SAVE_PATH = r'./'
 
 
@@ -17,8 +17,8 @@ def image():
     # 存储文件名
     file_name = []
 
-    for i in range(1, 501):
-        file_name.append(str(i) + '.jpg')
+    for i in range(3000):
+        file_name.append(str(i) + '.png')
 
     # 构造文件路径+文件名
     file_list = [os.path.join(IMAGE_PATH, file) for file in file_name]
@@ -36,11 +36,10 @@ def image():
     image = tf.image.decode_jpeg(value)
 
     # 32 * 90 * 3
-    image.set_shape([32, 90, 3])
+    image.set_shape([100, 30, 3])
 
     # 批处理  capacity 队列最多可存储的样例数 [500, 32, 90, 3]
-    image_batch = tf.train.batch([image], batch_size=500, capacity=500, num_threads=1)
-    image_batch.key = key
+    image_batch = tf.train.batch([image], batch_size=3000, capacity=3000, num_threads=1)
 
     return image_batch
 
@@ -60,10 +59,10 @@ def label():
     key, value = reader.read(file_queue)
 
     # 解码 records=[['None']] 读取出来是字符串形式
-    number, labels = tf.decode_csv(value, record_defaults=[[1], ['None']])
-
+    key, labels = tf.decode_csv(value, record_defaults=[[1], ["None"]])
+    print(labels)
     # 批处理 [500, 1]
-    file_batch = tf.train.batch([labels], batch_size=500, capacity=500, num_threads=1)
+    file_batch = tf.train.batch([labels], batch_size=3000, capacity=3000, num_threads=1)
 
     return file_batch
 
@@ -73,7 +72,7 @@ def deal_label(labels):
     标签值数值化 1 ÷ 1
     :return:
     """
-    LETTER = "0123456789+-×÷"
+    LETTER = "abcdefghijklmnopqrstuvwxyz"
 
     # {...0: '+', 1: '-', 2: '×', 3: '÷'}
     letter = dict(enumerate(list(LETTER)))
@@ -120,7 +119,7 @@ def write_to_tfrecords(image_batch, label_batch):
     writer = tf.python_io.TFRecordWriter(path=TFRECORDS_SAVE_PATH + 'train.tfrecords')
 
     # 循环将每一张图片序列化后写入
-    for i in range(500):
+    for i in range(3000):
         # 取出第i张图片， 将其特征值转换为string
         image_str = image_batch[i].eval().tostring()
 
@@ -152,7 +151,7 @@ def caption():
         coord = tf.train.Coordinator()
 
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
+        image_batch = sess.run(image_batch)
         label_banary = sess.run(label_batch)
         label_letter = deal_label(label_banary)
 

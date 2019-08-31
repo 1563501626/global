@@ -5,27 +5,30 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string("tfrecords_dir", "./train.tfrecords", "验证码tfrecords文件")
-tf.app.flags.DEFINE_string("captcha_dir", r"D:\crawl_datasource\yzm\image", "验证码图片路径")
+tf.app.flags.DEFINE_string("captcha_dir", r"./files", "验证码图片路径")
 
 
-# tf.app.flags.DEFINE_string("letter", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "验证码字符的种类")
+tf.app.flags.DEFINE_string("letter", "abcdefghijklmnopqrstuvwxyz", "验证码字符的种类")
 
 
 def dealwithlabel(label_str):
-    # # 构建字符索引 {0：'A', 1:'B'......}
-    # num_letter = dict(enumerate(list(FLAGS.letter)))
+    # 构建字符索引 {0：'A', 1:'B'......}
+    num_letter = dict(enumerate(list(FLAGS.letter)))
 
-    # # 键值对反转 {'A':0, 'B':1......}
-    # letter_num = dict(zip(num_letter.values(), num_letter.keys()))
+    # 键值对反转 {'A':0, 'B':1......}
+    letter_num = dict(zip(num_letter.values(), num_letter.keys()))
 
-    # print(letter_num)
+    print(letter_num)
 
-    LETTER = "0123456789+-×÷"
-
-    # {...0: '+', 1: '-', 2: '×', 3: '÷'}
-    letter = dict(enumerate(list(LETTER)))
-    # {...'+': 0, '-': 1, '×': 2, '÷': 3}
-    letter_num = dict(zip(letter.values(), letter.keys()))
+    # temp = []
+    # for i in range(100):
+    #     temp.append(str(i))
+    # for i in "+-×÷":
+    #     temp.append(i)
+    # # {...0: '+', 1: '-', 2: '×', 3: '÷'}
+    # letter = dict(enumerate(temp))
+    # # {...'+': 0, '-': 1, '×': 2, '÷': 3}
+    # letter_num = dict(zip(letter.values(), letter.keys()))
 
     # 构建标签的列表
     array = []
@@ -59,8 +62,8 @@ def get_captcha_image():
     # 构造文件名
     filename = []
 
-    for i in range(1, 501):
-        string = str(i) + ".jpg"
+    for i in range(3000):
+        string = str(i) + ".png"
         filename.append(string)
 
     # 构造路径+文件
@@ -78,10 +81,10 @@ def get_captcha_image():
     # 解码图片数据
     image = tf.image.decode_jpeg(value)
 
-    image.set_shape([32, 90, 3])
+    image.set_shape([100, 30, 3])
 
     # 批处理数据 [6000, 20, 80, 3]
-    image_batch = tf.train.batch([image], batch_size=500, num_threads=1, capacity=500)
+    image_batch = tf.train.batch([image], batch_size=3000, num_threads=1, capacity=3000)
 
     return image_batch
 
@@ -91,7 +94,7 @@ def get_captcha_label():
     读取验证码图片标签数据
     :return: label
     """
-    file_queue = tf.train.string_input_producer(["./text02.csv"], shuffle=False)
+    file_queue = tf.train.string_input_producer(["./text03.txt"], shuffle=False)
 
     reader = tf.TextLineReader()
 
@@ -100,9 +103,8 @@ def get_captcha_label():
     records = [[1], ["None"]]
 
     number, label = tf.decode_csv(value, record_defaults=records)
-
     # [["NZPP"], ["WKHK"], ["ASDY"]]
-    label_batch = tf.train.batch([label], batch_size=500, num_threads=1, capacity=500)
+    label_batch = tf.train.batch([label], batch_size=3000, num_threads=1, capacity=3000)
 
     return label_batch
 
@@ -123,7 +125,7 @@ def write_to_tfrecords(image_batch, label_batch):
     writer = tf.python_io.TFRecordWriter(FLAGS.tfrecords_dir)
 
     # 循环将每一个图片上的数据构造example协议块，序列化后写入
-    for i in range(500):
+    for i in range(3000):
         # 取出第i个图片数据，转换相应类型,图片的特征值要转换成字符串形式
         image_string = image_batch[i].eval().tostring()
 

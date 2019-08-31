@@ -1,120 +1,64 @@
-# temp = []
-# for i in range(100):
-#     temp.append(str(i))
-# for i in "+-×÷":
-#     temp.append(i)
-# # {...0: '+', 1: '-', 2: '×', 3: '÷'}
-# letter = dict(enumerate(temp))
-# # {...'+': 0, '-': 1, '×': 2, '÷': 3}
-# letter = dict(zip(letter.values(), letter.keys()))
-# print(letter)
-# import numpy as np
-# label = np.array([[b'1\xc3\x973'],
-# [b'2-1'],
-# [b'64\xc3\xb78'],
-# [b'2+8'],
-# [b'60\xc3\xb76'],
-# [b'15-3'],
-# [b'5+11'],
-# [b'6-0'],
-# [b'5\xc3\xb71'],
-# [b'27\xc3\xb79'],
-# [b'8\xc3\x976'],
-# [b'32\xc3\xb78'],
-# [b'9\xc3\xb79'],
-# [b'13-1'],
-# [b'0-0'],
-# [b'24\xc3\xb78'],
-# [b'4\xc3\x974'],
-# [b'6-3'],
-# [b'7\xc3\x979'],
-# [b'72\xc3\xb79'],
-# [b'4+0'],
-# [b'3-0'],
-# [b'10\xc3\x975'],
-# [b'6+2'],
-# [b'9\xc3\xb73'],
-# [b'45\xc3\xb75'],
-# [b'9\xc3\x978'],
-# [b'35\xc3\xb77'],
-# [b'10\xc3\x971'],
-# [b'7-5'],
-# [b'8\xc3\x971'],
-# [b'12\xc3\xb72'],
-# [b'18+5'],
-# [b'12-0'],
-# [b'4+9'],
-# [b'9\xc3\x970'],
-# [b'6\xc3\x970'],
-# [b'8\xc3\x974'],
-# [b'30\xc3\xb76'],
-# [b'36\xc3\xb76'],
-# [b'72\xc3\xb78'],
-# [b'6\xc3\xb71'],
-# [b'15-7'],
-# [b'4+18'],
-# [b'1\xc3\x979'],
-# [b'2\xc3\x977'],
-# [b'32\xc3\xb78'],
-# [b'80\xc3\xb78'],
-# [b'10-6'],
-# [b'30\xc3\xb75'],
-# [b'8-1'],
-# [b'5\xc3\x970'],
-# [b'28\xc3\xb74'],
-# [b'8-0'],
-# [b'5+16'],
-# [b'10-4'],
-# [b'15+7'],
-# [b'5+0'],
-# [b'6+1'],
-# [b'14-1'],
-# [b'9\xc3\x976'],
-# [b'12\xc3\xb76'],
-# [b'14-2'],
-# [b'48\xc3\xb76'],
-# [b'1+5'],
-# [b'7\xc3\x977'],
-# [b'27\xc3\xb79'],
-# [b'9+6'],
-# [b'45\xc3\xb79'],
-# [b'19-3'],
-# [b'2\xc3\x978'],
-# [b'9-7'],
-# [b'4-2'],
-# [b'8+15'],
-# [b'12-4'],
-# [b'3+10'],
-# [b'7-7'],
-# [b'9-6'],
-# [b'11-0'],
-# [b'2\xc3\x972'],
-# [b'10+1'],
-# [b'6\xc3\x972'],
-# [b'6\xc3\xb71'],
-# [b'16\xc3\xb72'],
-# [b'36\xc3\xb74'],
-# [b'80\xc3\xb78'],
-# [b'5+13'],
-# [b'4\xc3\x972']])
-#
-# import re
-# label_letter = []
-# for i in label:
-#     string_i = i[0].decode()
-#     num = re.search(r'(\d+)([\+\-×÷]+)(\d+)', string_i)
-#     first = num.group(1)
-#     second = num.group(2)
-#     third = num.group(3)
-#     label_letter.append([letter[first], letter[second], letter[third]])
-#
-# print(label_letter)
+# coding=utf-8
+import random
+import string
+import sys
+import math
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-with open('./text', 'r', encoding='utf8') as f:
-    string = f.read()
-    string = string.split('\n')
+# 字体的位置，不同版本的系统会有不同
+font_path = 'C:\Windows\Fonts\ALGER.TTF'
+# 生成几位数的验证码
+number = 4
+# 生成验证码图片的高度和宽度
+size = (100, 30)
+# 背景颜色，默认为白色
+bgcolor = (255, 255, 255)
+# 字体颜色，默认为蓝色
+fontcolor = (0, 0, 255)
+# 干扰线颜色。默认为红色
+linecolor = (255, 0, 0)
+# 是否要加入干扰线
+draw_line = True
+# 加入干扰线条数的上下限
+line_number = (1, 5)
 
-f = open('./text02.csv', 'w', encoding='utf8')
-for i in range(500):
-    f.write(str(i)+','+string[i]+'\n')
-f.close()
+
+# 用来随机生成一个字符串
+def gene_text():
+    source = list(string.ascii_letters)
+    return ''.join(random.sample(source, number))  # number是生成验证码的位数
+
+
+# 用来绘制干扰线
+def gene_line(draw, width, height):
+    begin = (random.randint(0, width), random.randint(0, height))
+    end = (random.randint(0, width), random.randint(0, height))
+    draw.line([begin, end], fill=linecolor)
+
+
+# 生成验证码
+def gene_code(i):
+    width, height = size  # 宽和高
+    image = Image.new('RGBA', (width, height), bgcolor)  # 创建图片
+    font = ImageFont.truetype(font_path, 25)  # 验证码的字体
+    draw = ImageDraw.Draw(image)  # 创建画笔
+    text = gene_text().lower()  # 生成字符串
+    print(text)
+    font_width, font_height = font.getsize(text)
+    draw.text(((width - font_width) / number, (height - font_height) / number), text,
+              font=font, fill=fontcolor)  # 填充字符串
+    if draw_line:
+        gene_line(draw, width, height)
+    # image = image.transform((width+30,height+10), Image.AFFINE, (1,-0.3,0,-0.1,1,0),Image.BILINEAR)  #创建扭曲
+    # image = image.transform((width + 20, height + 10), Image.AFFINE, (1, -0.3, 0, -0.1, 1, 0), Image.BILINEAR)  # 创建扭曲
+    image = image.filter(ImageFilter.EDGE_ENHANCE_MORE)  # 滤镜，边界加强
+    image.save('./files/%s.png' % i)  # 保存验证码图片
+    return text
+
+
+if __name__ == "__main__":
+    f = open('text03.txt', 'a')
+    for i in range(3000):
+        text = gene_code(i)
+        f.write(str(i) + ',' + text + '\n')
+    f.close()
