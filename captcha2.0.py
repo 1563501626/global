@@ -21,7 +21,7 @@ class TrainCap:
     @staticmethod
     def gen_data(img_path):
         # 标签
-        label = img_path.split('_')[1]
+        label = img_path.split('_')[1].split('.')[0]
 
         # 图片
         captcha_img = Image.open(img_path)

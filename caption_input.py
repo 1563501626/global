@@ -4,7 +4,7 @@ import os, re
 
 # 数据输入
 
-IMAGE_PATH = r'./files'
+IMAGE_PATH = r'./files/'
 LABEL_PATH = r'./text03.txt'
 TFRECORDS_SAVE_PATH = r'./'
 
@@ -39,7 +39,7 @@ def image():
     image.set_shape([100, 30, 3])
 
     # 批处理  capacity 队列最多可存储的样例数 [500, 32, 90, 3]
-    image_batch = tf.train.batch([image], batch_size=3000, capacity=3000, num_threads=1)
+    image_batch = tf.train.batch([image], batch_size=10, capacity=10, num_threads=1)
 
     return image_batch
 
@@ -62,7 +62,7 @@ def label():
     key, labels = tf.decode_csv(value, record_defaults=[[1], ["None"]])
     print(labels)
     # 批处理 [500, 1]
-    file_batch = tf.train.batch([labels], batch_size=3000, capacity=3000, num_threads=1)
+    file_batch = tf.train.batch([labels], batch_size=10, capacity=10, num_threads=1)
 
     return file_batch
 
@@ -119,7 +119,7 @@ def write_to_tfrecords(image_batch, label_batch):
     writer = tf.python_io.TFRecordWriter(path=TFRECORDS_SAVE_PATH + 'train.tfrecords')
 
     # 循环将每一张图片序列化后写入
-    for i in range(3000):
+    for i in range(11):
         # 取出第i张图片， 将其特征值转换为string
         image_str = image_batch[i].eval().tostring()
 
