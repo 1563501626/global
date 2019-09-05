@@ -22,6 +22,7 @@ draw_line = True
 # 加入干扰线条数的上下限
 line_number = (1, 5)
 
+dir_name = 'test'
 
 # 用来随机生成一个字符串
 def gene_text():
@@ -43,7 +44,6 @@ def gene_code(i):
     font = ImageFont.truetype(font_path, 25)  # 验证码的字体
     draw = ImageDraw.Draw(image)  # 创建画笔
     text = gene_text().lower()  # 生成字符串
-    print(text)
     font_width, font_height = font.getsize(text)
     draw.text(((width - font_width) / number, (height - font_height) / number), text,
               font=font, fill=fontcolor)  # 填充字符串
@@ -52,13 +52,12 @@ def gene_code(i):
     # image = image.transform((width+30,height+10), Image.AFFINE, (1,-0.3,0,-0.1,1,0),Image.BILINEAR)  #创建扭曲
     # image = image.transform((width + 20, height + 10), Image.AFFINE, (1, -0.3, 0, -0.1, 1, 0), Image.BILINEAR)  # 创建扭曲
     image = image.filter(ImageFilter.EDGE_ENHANCE_MORE)  # 滤镜，边界加强
-    image.save('./files/%s.png' % i)  # 保存验证码图片
+    image.save('./%s/%s_%s.png' % (dir_name, i, text))  # 保存验证码图片
     return text
 
 
 if __name__ == "__main__":
-    f = open('text03.txt', 'a')
-    for i in range(3000):
+    for i in range(1000):
         text = gene_code(i)
-        f.write(str(i) + ',' + text + '\n')
-    f.close()
+        print(i, text)
+
