@@ -33,6 +33,7 @@ def model():
     # 第一层卷积  卷积 激活 池化
     # conv2d  input:[None, 28, 28, 1], filter:[5, 5, 1, 32], strides:[1, 1, 1, 1], padding:`SAME`,
     with tf.variable_scope("conv1"):
+
         w1 = weight_variable([5, 5, 1, 32])
         b1 = bias_variable([32])
         x_reshaped = tf.reshape(x, [-1, 28, 28, 1])

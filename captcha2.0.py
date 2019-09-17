@@ -11,20 +11,20 @@ class TrainError(Exception):
 
 class TrainCap:
     def __init__(self, file_path, file_width, file_height):
-        self.train_images_list = list(map(lambda x: os.path.join(file_path, x), os.listdir(file_path)))
+        self.train_images_list = os.listdir(file_path)
+        self.file_path = file_path
         self.file_width = file_width
         self.file_height = file_height
         self.max_captcha = 4
         self.char_set_len = 26
-        self.cap_text = 'abcdefghijklmnopqrstuvwxyz'
+        self.cap_text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    @staticmethod
-    def gen_data(img_path):
+    def gen_data(self, img_name):
         # 标签
-        label = img_path.split('_')[1].split('.')[0]
+        label = img_name.split('_')[0]
 
         # 图片
-        captcha_img = Image.open(img_path)
+        captcha_img = Image.open(os.path.join(self.file_path, img_name))
         captcha_array = np.array(captcha_img)
         return label, captcha_array
 
@@ -70,8 +70,8 @@ class TrainCap:
         this_batch = self.train_images_list[s:e]
         # print("{}:{}".format(s, e))
 
-        for i, img_path in enumerate(this_batch):
-            label, image_array = self.gen_data(img_path)
+        for i, img_name in enumerate(this_batch):
+            label, image_array = self.gen_data(img_name)
             image_array = self.convert2gray(image_array)  # 灰度化图片
             batch_x[i, :] = image_array.flatten() / 255  # flatten 转为一维
             batch_y[i, :] = self.text2vec(label)  # 生成 oneHot
@@ -104,30 +104,35 @@ class CNN:
         self.char_set_len = 26
         self.train_capt = train_cap
 
+    def model(self):
+        x_train = tf.placeholder(tf.float32, [None, self.file_width * self.file_height])
+        y_true = tf.placeholder(tf.float32, [None, self.max_captcha * self.char_set_len])
+
+        # 第一层卷积
+        
+
+        # 全连接
+        weight = tf.Variable(
+            tf.random_normal([self.file_width * self.file_height, self.max_captcha * self.char_set_len]), name='w')
+        bias = tf.constant(0.0, tf.float32, [self.max_captcha * self.char_set_len], name='b')
+        y_predict = tf.add(tf.matmul(x_train, weight), bias)
+        # 计算交叉熵损失
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_predict))
+        # 梯度下降优化损失
+        train_op = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss)
+        # 计算准确率
+        # loss_rate = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y_true), tf.argmax(y_predict)), tf.float32))
+        equal_li = tf.equal(tf.argmax(y_true), tf.argmax(y_predict))
+        loss_rate = tf.reduce_mean(tf.cast(equal_li, tf.float32))
+
+        return loss_rate, loss, train_op
+
     def cnn_train(self):
         """
         全连接层神经网络
         :return:
         """
-        x_train = tf.placeholder(tf.float32, [None, self.file_width * self.file_height])
-        y_true = tf.placeholder(tf.float32, [None, self.max_captcha * self.char_set_len])
 
-        weight = tf.Variable(
-            tf.random_normal([self.file_width * self.file_height, self.max_captcha * self.char_set_len]), name='w')
-        bias = tf.constant(0.0, tf.float32, [self.max_captcha * self.char_set_len], name='b')
-
-        y_predict = tf.add(tf.matmul(x_train, weight), bias)
-
-        # 计算交叉熵损失
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_predict))
-
-        # 梯度下降优化损失
-        train_op = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss)
-
-        # 计算准确率
-        # loss_rate = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y_true), tf.argmax(y_predict)), tf.float32))
-        equal_li = tf.equal(tf.argmax(y_true), tf.argmax(y_predict))
-        loss_rate = tf.reduce_mean(tf.cast(equal_li, tf.float32))
 
         init_op = tf.global_variables_initializer()
 
@@ -135,9 +140,10 @@ class CNN:
             sess.run(init_op)
 
             for i in range(1000):
-                x_batch, y_batch = self.train_capt.get_batch()
+                x_batch, y_batch = self.train_capt.get_batch1(i)
                 sess.run(train_op, feed_dict={x_train: x_batch, y_true: y_batch})
-                print("第%s次训练，准确率为：%s" % (i, sess.run(loss_rate, feed_dict={x_train: x_batch, y_true: y_batch})))
+                if i % 20 == 0:
+                    print("第%s次训练，准确率为：%s" % (i, sess.run(loss_rate, feed_dict={x_train: x_batch, y_true: y_batch})))
 
 
 if __name__ == '__main__':
